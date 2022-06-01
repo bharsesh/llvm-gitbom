@@ -972,6 +972,13 @@ static bool isValidReportString(StringRef arg) {
 
 // Initializes Config members by the command line options.
 static void readConfigs(opt::InputArgList &args) {
+
+  // Collect the command line arguments for ld.lld
+  config->CommandLine.append("ld.lld ");
+  for (unsigned i = 0; i < args.getNumInputArgStrings(); i++) {
+    config->CommandLine.append(args.getArgString(i));
+    config->CommandLine.append(" ");
+  }
   errorHandler().verbose = args.hasArg(OPT_verbose);
   errorHandler().vsDiagnostics =
       args.hasArg(OPT_visual_studio_diagnostics_format, false);
@@ -2257,6 +2264,7 @@ static uint32_t getAndFeatures() {
 // all linker scripts have already been parsed.
 void LinkerDriver::link(opt::InputArgList &args) {
   llvm::TimeTraceScope timeScope("Link", StringRef("LinkerDriver::Link"));
+
   // If a --hash-style option was not given, set to a default value,
   // which varies depending on the target.
   if (!args.hasArg(OPT_hash_style)) {

@@ -6445,6 +6445,61 @@ CodeGenModule::ComputeGitBomMetadata(std::vector<std::string> &Deps) {
     return gitRef;
   }
   OS << hashContents;
+
+  // Emit bomsh metadata
+  // Outfile
+
+  std::vector<std::string> DepMetadataLines;
+  std::string MetadataContents;
+
+  MetadataContents.append("outfile: path: ");
+  SmallString<128> OutFile(getCodeGenOpts().OutputFile);
+  llvm::sys::fs::make_absolute(OutFile);
+  MetadataContents.append(OutFile.c_str());
+
+  // Infile(s)
+  std::vector<std::string>::iterator it = Deps.begin();
+  while (it != Deps.end()) {
+    SmallString<128> InFilename(*it);
+    llvm::sys::fs::make_absolute(InFilename);
+    std::string Line = "\ninfile: " + getHash(*it, getDiags()) +
+                       " path: " + InFilename.c_str();
+    DepMetadataLines.push_back(Line);
+    it++;
+  }
+
+  // Sorting this list is not necessary.
+  // std::sort(DepMetadataLines.begin(), DepMetadataLines.end());
+  for (auto line : DepMetadataLines) {
+    MetadataContents.append(line);
+  }
+  // Add the command line info
+  if (!getCodeGenOpts().RecordCommandLine.empty()) {
+    MetadataContents.append("\nbuild_cmd: ");
+    MetadataContents.append(getCodeGenOpts().RecordCommandLine);
+    MetadataContents.append("\n==== End of raw info for this proces\n");
+  }
+
+  // Write metadata file
+  // Metadata file has the extenstion ".metadata". It is named as
+  // <gitoid>.metadata
+  std::string metadatafile(gitRefPath);
+  EC = llvm::sys::fs::create_directory(gitRefPath, true);
+  if (EC) {
+    Diags.Report(diag::err_fe_error_opening) << gitRefPath << EC.message();
+    return gitRef;
+  }
+
+  SmallString<128> MetadataFile(gitRefPath);
+  MetadataFile.append(".metadata");
+  // TODO: Create a .metadata dir if needed
+  llvm::raw_fd_ostream OSM(MetadataFile, EC, llvm::sys::fs::OF_TextWithCRLF);
+  if (EC) {
+    DiagnosticsEngine &Diags = getDiags();
+    Diags.Report(diag::err_fe_error_opening) << MetadataFile << EC.message();
+    return gitRef;
+  }
+  OSM << MetadataContents;
   return gitRef;
 }
 

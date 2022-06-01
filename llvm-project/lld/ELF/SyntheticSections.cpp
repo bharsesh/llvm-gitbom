@@ -123,11 +123,22 @@ std::unique_ptr<BomSection<ELFT>> BomSection<ELFT>::create() {
 
   using FileHashBomMap =
       std::map<std::string, std::pair<std::string, std::string>>;
-
+  // Metadata contents compatible to bomsh
+  std::string MetadataContents;
   FileHashBomMap BomMap;
   std::error_code ec;
-  std::string filename = config->outputFile.str();
-  StringRef BomFile = StringRef(filename);
+  std::string OutFilename(config->outputFile.str());
+  StringRef BomFile = StringRef(OutFilename);
+
+  // Emit gitbom info for Outputfile
+  // Getting the hash of the outputfile is tricky as the file has not been
+  // written at this point.
+  MetadataContents.append("\noutfile: ");
+  MetadataContents.append(" path: ");
+  SmallString<128> OutFile(OutFilename);
+  llvm::sys::fs::make_absolute(OutFile);
+  MetadataContents.append(OutFile.c_str());
+
   for (StringRef path : config->dependencyFiles) {
     llvm::ErrorOr<std::unique_ptr<llvm::MemoryBuffer>> fileBuf =
         llvm::MemoryBuffer::getFile(path, /*IsText=*/true);
@@ -142,6 +153,12 @@ std::unique_ptr<BomSection<ELFT>> BomSection<ELFT>::create() {
     auto Result = Hash.final();
     std::string result = convertToHex(Result);
     BomMap[path.str()] = std::make_pair(result, "");
+    MetadataContents.append("\ninfile: ");
+    MetadataContents.append(result);
+    MetadataContents.append(" path: ");
+    SmallString<128> InFilename(path);
+    llvm::sys::fs::make_absolute(InFilename);
+    MetadataContents.append(InFilename.c_str());
   }
 
   bool create = false;
@@ -161,6 +178,7 @@ std::unique_ptr<BomSection<ELFT>> BomSection<ELFT>::create() {
 
   FileHashBomMap::iterator Iter;
   std::vector<std::string> DepLines;
+
   for (Iter = BomMap.begin(); Iter != BomMap.end(); Iter++) {
     std::string Line = "blob " + Iter->second.first;
     if (!Iter->second.second.empty()) {
@@ -202,6 +220,20 @@ std::unique_ptr<BomSection<ELFT>> BomSection<ELFT>::create() {
     error("\n error opening " + gitRefPath);
   }
   OS << hashContents;
+
+  // Generate metadata file compatible to bomsh
+  SmallString<128> MetadataFile(gitRefPath);
+
+  MetadataFile.append(".metadata");
+  MetadataContents.append("\nbuild-cmd: ");
+  MetadataContents.append(config->CommandLine);
+  MetadataContents.append("\n==== End of raw info for this process");
+  llvm::raw_fd_ostream OSM(MetadataFile, EC, llvm::sys::fs::OF_TextWithCRLF);
+  if (EC) {
+    error("\n error opening " + MetadataFile);
+  }
+  OSM << MetadataContents;
+
   if (create) {
     return std::make_unique<BomSection<ELFT>>(Result.str());
   }

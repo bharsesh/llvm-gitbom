@@ -183,6 +183,9 @@ public:
   /// The string containing the gitref of the .bom file.
   std::string RecordGitBom;
 
+  // Output filename for the compilation (same as the one in FrontendOpts).
+  std::string OutputFile;
+
   /// List of dependent source/header files.
   /// This is shared with DependencyOuputOptions.
   /// This has same contents as Dependencies in DependencyCollector.

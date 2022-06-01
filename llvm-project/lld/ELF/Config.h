@@ -100,6 +100,7 @@ struct Configuration {
   uint32_t andFeatures = 0;
   llvm::CachePruningPolicy thinLTOCachePolicy;
   llvm::SetVector<llvm::CachedHashString> dependencyFiles; // for --dependency-file
+  std::string CommandLine;
   llvm::StringMap<uint64_t> sectionStartMap;
   llvm::StringRef bfdname;
   llvm::StringRef chroot;
