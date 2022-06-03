@@ -225,7 +225,7 @@ std::unique_ptr<BomSection<ELFT>> BomSection<ELFT>::create() {
   SmallString<128> MetadataFile(gitRefPath);
 
   MetadataFile.append(".metadata");
-  MetadataContents.append("\nbuild-cmd: ");
+  MetadataContents.append("\nbuild_cmd: ");
   MetadataContents.append(config->CommandLine);
   MetadataContents.append("\n==== End of raw info for this process");
   llvm::raw_fd_ostream OSM(MetadataFile, EC, llvm::sys::fs::OF_TextWithCRLF);

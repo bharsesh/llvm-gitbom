@@ -6477,7 +6477,7 @@ CodeGenModule::ComputeGitBomMetadata(std::vector<std::string> &Deps) {
   if (!getCodeGenOpts().RecordCommandLine.empty()) {
     MetadataContents.append("\nbuild_cmd: ");
     MetadataContents.append(getCodeGenOpts().RecordCommandLine);
-    MetadataContents.append("\n==== End of raw info for this proces\n");
+    MetadataContents.append("\n==== End of raw info for this process\n");
   }
 
   // Write metadata file
